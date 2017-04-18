@@ -1,0 +1,109 @@
+---
+title: "Matrix"
+author: "Trần Quí Phi"
+date: "November 17, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Khái niệm về matrix (ma trận)
+***
+Ta gọi là Ma trận. Là một bảng bao gồm các phần từ CÙNG KIỂU. Nó gồm các cột và các hàng. Ta tạo ma trận bằng cách tạo các cột trước (các vector), rồi nối lại bằng hàm cbind , hoặc là các hàng trước, rồi nối lại bằng hàm rbind.C là viết tắt của Column, R là row, bind là nối kết lại.Ví dụ muốn tạo ma trận:
+1 9
+4 5
+5 4
+Có hai cách
+```{r}
+# Tạo theo cột dùng cbind
+C1 <- c(1,4,5)
+C2 <- c(9,5,4)
+M <- cbind(C1,C2)
+M
+#Tạo theo hàng dùng rbind
+R1 <- c(1,9)
+R2 <- c(4,5)
+R3 <- c(5,4)
+M <- rbind(R1, R2, R3)
+M
+```
+
+Cách tạo bằng hàm matrix hơi phức tạp, có lẽ không nên dùng vì dễ nhầm. Hàm matrix tạo ma trận từ MỘT VECTOR, các phần tử này sẽ phải được sắp từ trên xuống dưới, hết cột này đến cột khác, nghĩa là muốn tạo ma trận M như trên, ta tạo vector như sau:
+```{r}
+V <- c(1,4,5,9,5,4)
+# Rồi ta quy định số hàng bằng tham số nrow (number of rows).
+M <- matrix(V,nrow=3)
+# Để kiểm tra số hàng và cột của ma trận ta dùng hàm dim (Dimension)
+dim(M)
+M
+```
+
+Tức M có 3 hàng 2 cột.Từ đây nên nhớ, với ma trận LUÔN LÀ HÀNG TRƯỚC, CỘT SAU!
+Cũng nói thêm một chút, hàm dim(M) cho ra tính chất (attribute) của M, mặt khác nếu ta thay đổi tính chất của nó bằng phép gán thì bản thân M sẽ thay đổi. Đây là điều hay gặp trong R, ta nên lưu ý.
+```{r}
+# Đổi M thành 2 hàng 3 cột.
+dim(M) <- c(2,3)
+M
+```
+***
+## Trích một phần tử của matrix
+
+Vị trí của một phần tử trên ma trận được xác định bởi hai con số, như là một điểm trên mặt phẳng toạ độ! HÀNG TRƯỚC, CỘT SAU và như vector chúng được đặt trong ngoặc vuông.
+```{r error = TRUE}
+M=matrix(c("C","D","E","A","F","G"),nrow=2)
+M
+# Hang 1 cot 2
+M[1,2] 
+# Hang 2 cot 3
+M[2,3] 
+# Hang 3 cot 1
+M[3,1] 
+# Lỗi cuối cùng là chỉ số vượt giới hạn, vì ma trận M chỉ có 2 hàng
+```
+Bây giờ ta lấy cả một hàng. Uhm, vậy thì ta chẳng chỉ ra cột nào cả:
+```{r}
+# Hang 2
+M[2,] 
+# Lấy cả một cột thì không chỉ ra hàng nào c. Cot 2:
+M[,2]
+#Nhưng luôn nhớ là có dấu phẩy!
+```
+
+Bây giờ ta đưa một chỉ số thôi, không có dấu phẩy, điều gì sẽ xảy ra?
+```{r}
+M[2]
+M[5]
+```
+
+Vậy là đã rõ, các phần tử của ma trận được xếp thứ tự từ trên xuống dưới (theo cột), hết cột này đến cột khác. DÙNG MỘT CHỈ SỐ CŨNG OK!, nhưng nó hơi mẹo một chút. Với một phần tử thứ N, trong một ma trận X hàng, Y cột ta sẽ xác định được phần tử đó ở hàng nào cột nào, và ngược lại! Bạn hãy thử xem!
+Thử xem không chỉ ra hàng ra cột nào cả, chắc là cả ma trận
+```{r}
+M[,]
+# Đúng vậy!
+```
+
+Bây giờ ta nói vấn đề thực tế hơn:
+```{r}
+M=matrix(c(1,2,1,3,2,4,5,5,4,8,6,7),nrow=3)
+M
+```
+
+Ta muốn trích (các) hàng mà cột 1 có giá trị là 2?
+```{r}
+M[M[, 1] == 2,]
+```
+Ta muốn trích (các) cột mà hàng 3 có giá trị là 4?
+```{r}
+M[, M[3,] == 4]
+```
+
+Ta còn nhớ khi trích các phần tử của vector ta có thể dùng một vector để làm chỉ số như kiểu `V[c(1,4,5)]` trích các phần tử 1, 4 và 5.
+Ma trận thì sao?
+```{r}
+# Trích các hàng 1 và 2:
+M[c(1,2),]
+# Trường hợp dưới đây hơi khác, chỉ số cột và hàng đều là hai vector:
+M[c(1,3), c(2,1)]
+```

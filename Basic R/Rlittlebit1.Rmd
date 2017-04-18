@@ -1,0 +1,98 @@
+---
+title: "Rlittlebit - Vector"
+author: "BS. Trần Quí Phi"
+date: "November 8, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Vector
+Vector là dữ liệu cơ bản nhất của R. Chẳng qua nó là một dãy giá trị **CÙNG KIỂU**. Tức là cùng là số hết, hoặc cùng là chữ (string, text).
+Tạo vector đơn giản nhất là dùng hàm c (combine? concatenate?).
+```{r}
+V1<- c(3,4,5)
+V2<- c("Hoa", "Cuc", "Dao")
+```
+
+Nếu ta tạo vector bởi các dữ liệu có kiểu khác nhau, như sau (có số 3):
+```{r}
+V3<- c(3,"Hoa","Cuc","Dao")
+V3
+```
+Thì vẫn không có lỗi, nhưng R sẽ tự động chuyển 3 thành chữ, gọi là ép kiểu (coerce).Để ý số 3 bị đóng ngoặc, tức không phải là số (numeric) mà đã trở thành chữ “3”.
+Muốn lấy một phần tử của vector ta dùng chỉ số của nó.
+```{r}
+V3[2]
+```
+Độ dài của vector (số phần tử của nó) được lấy ra bởi hàm length
+```{r}
+length(V3)
+```
+Cuối cùng, khi tạo một biến “đơn lẻ” như: x=3. Thì x cũng chính là một vector. Có độ dài là 1. Tức là x với x[1] là như nhau. Muốn chắc hơn, ta kiểm tra bằng hàm is.vector
+```{r}
+x<-3
+x[1]
+length(x)
+is.vector(x)
+```
+##TRÍCH MỘT PHẦN CỦA VECTOR
+Các phần tử của một vector được xác định bằng thứ tự (chỉ số) của chúng, từ 1 trở đi
+```{r}
+V<-c("An","Binh","Hoa","Hai")
+V[1]
+```
+
+Nếu bạn lấy một số thứ tự không có, R sẽ cho giá trị là NA
+```{r}
+V[9]
+```
+
+NA là **Not Applicable, Not Available, hoặc là No Answer!**
+Nếu muốn lấy nhiều phần tử, bạn phải cho vào ngoặc vuông  **MỘT VECTOR**. Thiệt ra thì một hay nhiều chỉ số cũng là một vector, nhưng nếu nhiều thì buộc phải dùng hàm c:
+```{r}
+V[c(1,2,4)]
+```
+Còn như thế này sẽ có lỗi
+```{r error=TRUE}
+V[1,3]
+```
+Ghi như vậy chỉ áp dụng cho một ma trận 2 chiều. Vector không có chiều. Kiểm tra bằng hàm dim (dimension):
+```{r}
+dim(V)
+```
+(Uhm, lẽ ra Vector phải có 1 chiều chứ nhỉ!)
+Độc đáo là ta có thể dùng chỉ số âm, có nghĩa là loại trừ: Chú ý `V=c("An","Binh","Hoa","Hai")` 
+```{r}
+V[-1]
+V[c(-1,-4)]
+V[-c(1,4)]
+```
+
+Ta cũng có thể có nhu cầu lấy một số phần tử thỏa mãn điều kiện nào đó. Lúc này ta dùng phép so sánh bản thân vector và đặt trong ngoặc.
+```{r}
+V2<-c(4,5,5,8,1,4)
+V2[V2>4]
+V2[V2==1]
+```
+
+Nhưng chúng ta có khi lại muốn xác định phần tử có chỉ số nào (tức là thứ tự của nó) chứ không phải bản thân giá trị. Ta dùng hàm which (cái nào?)
+```{r}
+which(V2>4)
+```
+Tức là ta có phần tử thứ 2, 3 và 4 có giá trị lớn hơn 4.
+```{r}
+which(V2==8)
+```
+Trở lại `V=c("An","Binh","Hoa","Hai")`
+```{r}
+V<-c("An","Binh","Hoa","Hai")
+```
+
+Cách viết sau đây rất tường minh: kể ra những ai không có tên là "Hoa"?
+```{r}
+V[-which(V=="Hoa")]
+```
+Giải thích: hàm which cho ra thứ tự phần tử (hoặc nhiều, nếu có) có tên là "Hoa", dấu trừ phía trước là loại bỏ (các) chỉ số này.

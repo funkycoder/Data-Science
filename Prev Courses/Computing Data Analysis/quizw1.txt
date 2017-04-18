@@ -1,0 +1,46 @@
+Question 2
+x[1:2,]
+  Ozone Solar.R Wind Temp Month Day
+1    41     190  7.4   67     5   1
+2    36     118  8.0   72     5   2
+
+Question 3
+str(x) ##152 objects
+
+Question 4
+ x[152:153,]
+    Ozone Solar.R Wind Temp Month Day
+152    18     131  8.0   76     9  29
+153    20     223 11.5   68     9  30
+
+Question5
+> x[[47,1]]
+[1] 21
+
+Question 6
+> m <-x[is.na(x[,1]),1]
+> str(m)
+ int [1:37] NA NA NA NA NA NA NA NA NA NA ...
+
+Question 7
+> mean(x[!is.na(x[,1]),1])
+[1] 42.12931
+
+Question 8
+x<- read.csv("hw1_data.csv") ##Read in data file
+y <- x[,1]>31 ##Boolean matrix Ozone (Col1) >31
+z <- x[,4]>90 ##Boolean matrix Temp (Col4) >90
+rawSolarR <-x[y&z,2] ##Get the vector of SolarR
+solarR <-rawSolarR[!is.na(rawSolarR)]##Remove NA value
+mean(solarR) 
+212.8
+
+Question 9
+str(x) ##Month interger
+
+Question 10
+month <-x[,5]==6 ##Month=6
+rawTemp <-x[month,4]##Get the raw Temp
+temp <-rawTemp[!is.na(rawTemp)]##remove NA
+mean(temp)
+79.1

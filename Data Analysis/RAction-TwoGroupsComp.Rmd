@@ -1,0 +1,75 @@
+---
+title: "Two groups comparison"
+author: "Robert Kabakoff"
+date: "November 12, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploring dataset
+Load libraries, dataset UScrime is in MASS package
+```{r warning = FALSE}
+library(MASS)
+library(ggplot2)
+        
+```
+Take a look at the data
+```{r}
+head(UScrime)
+str(UScrime)
+```
+
+## Independent t-test
+Create a factor for So (Southern) and assign it to Region variable in UScrime
+```{r}
+UScrime$Reg <- factor(UScrime$So,
+                      levels = c(0,1),
+                      labels = c("Not South", "South"))
+```
+Now let's see how difference there are in Prob imprisonment in different region
+```{r}
+qplot(Reg, Prob, data = UScrime, geom = c("boxplot","point"))
+```
+
+Formal test to see where it is significant. It turns out YES
+```{r}
+t.test(Prob ~ Reg, data = UScrime)
+```
+Because the outcome variable is a proportion, you might try to transform it to normality before carrying out the t-test. Let's do this
+```{r}
+t.test(log(Prob / (1-Prob)) ~ Reg, data = UScrime)
+```
+The results are pretty much unchanged
+
+## Dependent t-test
+Question: Unemployment rate for youger males U1 (14-24) is greater than for older males U2 (35-39)
+```{r}
+# Calculate mean and sd from the dataset
+sapply(UScrime[c("U1","U2")], function(x)(c(mean = mean(x), sd = sd(x))))
+with(UScrime, t.test(U1, U2, paired = TRUE))
+```
+Younger males have higher rate of unemployment
+
+## Non parametric tests
+If the outcome variables are severly skewed or ordinal in nature, you may use non parametric tests
+```{r warning = FALSE}
+# Incarcenation rate in Southern and non Southern states
+with(UScrime, by(Prob, So, median))
+# Two independent groups. Non parametric test Wilcoxon rank sum test. Are they different?
+wilcox.test(Prob ~ So, data = UScrime)
+# Two dependent groups. Calculate median rate of unemployment rate from dataset
+sapply(UScrime[c("U1","U1")], median)
+# For dependent sample use Wilcoxon signed rank test
+with(UScrime, wilcox.test(U1, U2, paired = TRUE))
+```
+
+## Comparing more than two groups Kruskal Wallis test
+```{r}
+# Get region from the original dataset
+states <- as.data.frame(cbind(state.region, state.x77))
+# Apply the test now
+kruskal.test(Illiteracy ~ state.region, data = states)
+```

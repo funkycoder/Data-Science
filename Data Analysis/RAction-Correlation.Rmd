@@ -1,0 +1,88 @@
+---
+title: "Correlation"
+author: "Robert Kabacoff"
+date: "November 10, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+Correlation coefficients are used to describe relationships among quantitavie variables
+
+* The sign : the direction of the relationship (positive or inverse)
+* The magnitude: the strength of the relationship
+    + 0 No relationship
+    + -1 or 1 Perfect relationship
+
+## Type of correlations
+
+* Pearson : two quantitative variables
+* Spearman's rank order: two rank-ordered variables
+* Kendall Tau: non parametric measure of rank correlation
+
+Let's take a look at the state.x77 dataset in R. It provides data on the population, income, illiteracy rate,life expectancy, murder rate and high school graduation grade rate for the 50 US states in 1977. For more information type `help("state.x77")`
+
+Subset the dataframe
+```{r}
+states = state.x77[,c(1:6)]
+str(states)
+head(states,2)
+```
+Produce variances and covariances
+```{r}
+cov(states)
+```
+Create Pearson Product Moment correlation coefficients (default)
+```{r}
+cor(states)
+```
+Create Spearman rank order correlation coefficients
+```{r}
+cor(states, method="spearman")
+```
+***
+You get square matrices by default (all variables crossed with all other variables). You can create nonsquare matrices:
+```{r}
+x<- states[,c("Population", "Income", "Illiteracy", "HS Grad")]
+y<- states[, c("Life Exp", "Murder")]
+cor(x,y)
+```
+Remember that the results don't tell you if they are statistical significance
+
+
+## Partial Correlation
+
+Correlation between two quantitative variables, **controlling** for one or more other quantitative variables
+```{r message=FALSE}
+library(ggm)
+#partial correlation
+pcor(c(1,5,2,3,6),cov(states))
+```
+In this case 0.346 is the correlation between population and murder rate, controlling for the influence of income, illiteracy rate and HS graduation rate.
+
+## Testing for significance
+The null hypothesis is no relationship (correlation in the population = 0). You can use `cor.test(x, y, alternative = , method = `
+
+* alternative = "two.side", "less", "greater"
+* method = "pearson", "kendall", "spearman"
+```{r results='hide'}
+cor.test(states[, c("Life Exp")], states[, c("Murder")])
+```
+**OR**
+```{r}
+cor.test(states[, 4], states[, 5])
+```
+The results show the population correlation between life expectancy and murder rate is **NOT** 0
+If you want to test cross testing multiple correlations at a time then the `corr.test()` function in **psych** package will help you to do just that
+```{r}
+library(psych)
+corr.test(states, use = "complete")
+```
+You can see that the correlation between population size and high school graduation rate (-0.10) is not significantly different from 0
+
+## Other test of significance
+The `pcor.test()` in the psych package can be used to test the conditional independence of two variables controlling for one or more additional variables

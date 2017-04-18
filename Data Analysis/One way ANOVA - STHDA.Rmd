@@ -1,0 +1,245 @@
+---
+title: "One-way ANOVA"
+author: "STHDA Statistical tools for high-through data analysis"
+date: "March 5, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+## Mục lục
+***
+* Thể hiện dữ liệu và tính One-way ANOVA test
+  + Nạp dữ liệu vào R
+  + Kiểm tra dữ liệu
+  + Tính One-way ANOVA test
+  + Diễn giải kết quả
+  + So sánh nhiều cặp giữa các trung bình nhóm
+    -  So sánh nhiều cặp Tukey
+    -  So sánh nhiều cặp dùng gói multcomp
+    -  So sánh cặp t-test
+  + Kiểm tra giả thiết ANOVA xem có thích hợp không?
+    -  Kiểm tra giả thiết đồng nhất phương sai (homogeneity of variance assumption)
+    -  Khi không thỏa giả thiết đồng nhất phương sai
+    -  Kiểm tra giả thiết chuẩn (normality)
+  + Phép kiểm phi tham số thay thế One-way ANOVA
+
+## Thể hiện dữ liệu và tính One-way ANOVA test
+***
+## Nạp dữ liệu vào R
+1. Chuẩn bị dữ liệu
+2. Lưu dữ liệu vào file dạng .txt (tab) hay .csv
+3. Nạp dữ liệu vào hệ thống
+```{r}
+# Nếu là file .text: my_data <- read.delim(file.choose())
+# Nếu là file .csv : my_data <- read.csv(file.choose())
+```
+Trong bài tập này chúng ta sẽ sử dụng dữ liệu có sẵn trong R. Dữ liệu có chứa cân nặng các loài cây chia làm ba nhóm (1 nhóm chứng và 2 nhóm thử nghiệm)
+```{r}
+my_data <- PlantGrowth
+```
+## Kiểm tra dữ liệu
+***
+Để xem dữ liệu có "hình dạng" thế nào, chúng ta có thể sử dụng hàm sample_n [trong gói dplyr]. Hàm sample_n() sẽ chọn ngẫu nhiên một vài quan sát trong data frame rồi in ra:
+```{r}
+# Lấy mẫu ngẫu nhiên
+set.seed(1234)
+dplyr::sample_n(my_data, 10)
+```
+
+> Trong thuật ngữ R, cột "group" được gọi là yếu tố (factor)và các mục khác nhau trong đó ("ctr", "trt1, trt2") được gọi là các mức yếu tố (factor levels). Các mức này được xếp theo thứ tự chữ cái
+
+```{r}
+# Thể hiện các mức yếu tố
+levels(my_data$group)
+```
+
+Nếu như các mức không được tự động sắp xếp theo thứ tự chữ cái thì sắp xếp chúng như sau:
+```{r}
+my_data$group <- ordered(my_data$group, levels = c("ctrl", "trt1", "trt2"))
+```
+
+> Có thể tính ra các thông số thống kê (trung bình và độ lệch chuẩn) sử dụng gói dplyr
+
+```{r warning = FALSE}
+# Tính tổng số, trung bình, độ  lệch chuẩn theo nhóm
+library(dplyr)
+group_by(my_data, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(weight, na.rm = TRUE),
+    sd = sd(weight, na.rm = TRUE)
+  )
+```
+
+## Thể hiện dữ liệu (Visualize data)
+*  Ở đây chúng tôi sử dụng gói ggpubr vốn dựa trên ggplot2
+*  Cài đặt bản mới nhất ggpubr trên GitHub như sau
+
+```{r}
+# if (!require(devtools)) install.packages("devtools")
+# devtools::install_github("kassambara/ggpubr")
+```
+
+* Hoặc cài đặt từ CRAN
+```{r}
+# install.packages("ggpubr")
+```
+
+* Thể hiện dữ liệu với ggpubr
+
+```{r warning = FALSE}
+# Box plots
+#---------------------------
+# Vẽ biểu đồ cân nặng theo nhóm và màu theo nhóm
+library("ggpubr")
+ggboxplot(my_data, x = "group", y = "weight",
+          color = "group", palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+          order = c("ctrl", "trt1", "trt2"),
+          ylab = "Weight", xlab = "Treatment"
+          )
+
+# Mean plots
+#---------------------------
+# Vẽ cân nặng theo nhóm
+# Thêm thanh sai số : mean_se
+# Thêm các giá trị khác bao gồm mean_sd, mean_ci, median_iqr,...)
+ggline(my_data, x = "group", y = "weight",
+       add = c("mean_se", "jitter"),
+       order = c("ctrl", "trt1", "trt2"),
+       ylab = "Weight", xlab = "Treatment"
+       )
+```
+
+* Nếu vẫn muốn sử dụng gói R gốc để vẽ biểu đồ có thể dùng các lệnh sau
+```{r warning = FALSE}
+# Box plot
+boxplot(weight ~ group, data = my_data,
+        xlab = "Treatment", ylab = "Weight",
+        frame = FALSE, col = c("#00AFBB", "#E7B800", "#FC4E07"))
+# Plot means
+library(gplots)
+plotmeans(weight ~ group, data = my_data,  
+          xlab = "Treatment", ylab = "Weight",
+          main = "Mean plot with 95% CI"
+          )
+
+```
+
+## Tính One-way ANOVA test
+
+> Chúng ta muốn tìm hiểu xem có sự khác biệt nào về cân nặng trung bình giữa các nhóm hay không
+
+* Sử dụng hàm aov(). Sau đó áp dụng hàm summary() để xem kết quả của mô hình phân tích phương sai
+
+```{r}
+# Tính phân tích phương sai
+res.aov <- aov(weight ~ group, data = my_data)
+# Xem tổng kết
+summary(res.aov)
+```
+
+> Kết quả phân tích bao gồm cột giá trị F và Pr(>F) tương ứng với giá trị của p
+
+## Diễn giải kết quả
+***
+Giá trị của p< 0.05 do đó có sự khác biệt giữa ba nhóm thử nghiệm
+
+## So sánh nhiều cặp giữa các trung bình nhóm
+***
+* One-way ANOVA test cho biết có ít nhất một nhóm có sự khác biệt tuy nhiên không biết cụ thể là nhóm nào
+* Sử dụng so sánh cặp giữa nhiều nhóm có thể xác định được cụ thể cặp nào có sự khác biệt
+
+### So sánh cặp Tukey
+* Tukey Honest Significant Differences
+* Hàm TukeyHSD nhận tham số là bảng ANOVA (fitted ANOVA)
+```{r}
+TukeyHSD(res.aov)
+```
+
+> Có thể nhận thấy chỉ có sự khác biệt giữa nhóm trt2 và trt1 với giá trị p hiệu chỉnh là 0.012
+
+### So sánh nhiều cặp dùng gói multcomp
+* Sử dụng hàm glht() : General Linear Hypothesis test
+
+> glht(model, lincft)
+
+* model: fitted model, bảng ANOvA là kết quả trả về từ hàm aov()
+* lincft: giả thiết muốn thử, thường là kết của trả về từ hàm mcp()
+
+```{r warning = FALSE}
+library(multcomp)
+summary(glht(res.aov, linfct =  mcp(group = "Tukey")))
+```
+
+### So sánh cặp t-test
+* Hiệu chỉnh bằng phương pháp Benjamini-Hochberg
+```{r}
+pairwise.t.test(my_data$weight, my_data$group, p.adjust.method = "BH")
+```
+
+## Kiểm tra giả thiết ANOVA xem có thích hợp không?
+***
+### Kiểm tra giả thiết đồng nhất phương sai (homogeneity of variance assumption)
+Trong biểu đồ dưới đây không thấy có tương quan rõ ràng giữa phần dư (residual) và giá trị tính được theo mô hình (fitted model) là trung bình của các nhóm. Như vậy chúng ta có thể cho rằng các nhóm tương đối đòng nhất về phương sai
+
+```{r}
+# Homogeneity of variance
+plot(res.aov, 1)
+```
+
+> Các điểm 17,15,4 được coi là các điểm ngoại lai (outliers)có thể ảnh hưởng nghiêm trọng đến tính chuẩn (normality) và tính đồng nhất của phương sai (homogeneity of variance). Ngoài ra chúng ta có thể sử dụng các test thống kê như Bartlett test hay Levene test để kiểm tra tính đồng nhất của phương sai.
+
+```{r warning = FALSE}
+# Chúng tôi khuyên dùng Levene test không phụ thuộc hoàn toàn và tính chuẩn của dữ liệu.
+library(car)
+leveneTest(weight ~ group, data = my_data)
+```
+
+> Kết quả cho thấy là không có bằng chứng để cho rằng phương sai giữa các nhóm có sự khác biệt. Do đó chúng ta có thể kết luận là có sự đồng về phương sai giữa các nhóm.
+
+## Cần làm gì khi không cần sự đồng nhất về phương sai?
+
+> Sử dụng ANOVA test mà không cần đồng nhất phương sai Welch one-way test
+
+```{r}
+oneway.test(weight ~ group, data = my_data)
+
+```
+
+> Sử dụng t so sánh cặp không cần sự đồng nhất về phương sai
+
+```{r}
+pairwise.t.test(my_data$weight, my_data$group,
+                p.adjust.method = "BH", pool.sd = FALSE)
+```
+
+### Kiểm tra giả thiết phân phối chuẩn (normality assumption)
+* Biểu đồ phân bố chuẩn của phần dư (normality plot of residuals): Bách phân vị của phần dư được plot với bách phân vị của phân phối chuẩn với đường tham chiếu 45 độ
+* Biểu đồ này được dùng để kiểm tra xem phần dư có phân phối chuẩn hay không, nếu có thì nó phải theo đường thẳng 45 độ tham chiếu
+
+```{r}
+#Normality plot
+plot(res.aov, 2)
+  
+```
+
+> Các điểm được vẽ nằm dọc theo đường tham chiếu, do đó chúng ta có thể giả định chúng phân phối chuẩn. Ngoài ra chúng ta có thể dùng test shapiro-Wilk để kiểm chứng:
+
+
+```{r}
+# Trích xuất phần dư
+aov_residuals <- residuals(object = res.aov)
+# Chạy Shapiro-Wilk test
+shapiro.test(x = aov_residuals)
+```
+
+### Test phi tham số thay thế cho one-way ANOVA
+* Kruskal-Wallis rank sum test khi các giả thiết cho ANOVA không được thỏa mãn
+```{r}
+kruskal.test(weight ~ group, data = my_data)
+```
+

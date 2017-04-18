@@ -1,0 +1,165 @@
+---
+title: "Introduction to ggplot2"
+author: "Hadley Wickham"
+date: "November 11, 2016"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploring the mpg data set
+```{r warning = FALSE, message = FALSE}
+library(ggplot2)
+head(mpg)
+str(mpg)
+summary(mpg)
+```
+
+## Now let's try first plot
+```{r}
+qplot(displ, hwy, data = mpg)
+```
+
+**Differentiate class by colour**
+```{r}
+qplot(displ, hwy, colour = class, data = mpg)
+```
+
+## Experiment with different aesthetics: colours, size, shape
+### Set colour to a continuous variable
+```{r}
+qplot(displ, hwy, colour = cty, data = mpg)
+```
+
+### Using shape
+```{r error=TRUE}
+qplot(displ, hwy, shape = class, data = mpg)
+qplot(displ, hwy, shape = cyl, data = mpg)
+```
+
+### Using size
+```{r}
+qplot(displ, hwy, size = cyl, data = mpg)
+```
+
+### Combination
+```{r}
+qplot(displ, hwy, shape = drv, colour = drv, data = mpg)
+```
+
+## Faceting
+```{r}
+qplot(displ, hwy, data = mpg) + facet_grid(. ~ cyl)
+qplot(displ, hwy, data = mpg) + facet_grid(drv ~ .)
+qplot(displ, hwy, data = mpg) + facet_grid(drv ~ cyl)
+qplot(displ, hwy, data = mpg) + facet_wrap(~ class)
+```
+
+## Overplotting problem
+```{r}
+qplot(cty, hwy, data = mpg)
+qplot(cty, hwy, data= mpg, geom = "jitter")
+```
+
+## Using reorder and layers
+
+```{r}
+qplot(class, hwy, data= mpg)
+qplot(class, hwy, data= mpg, geom = "jitter")
+qplot(class, hwy, data= mpg, geom = "violin")
+qplot(class, hwy, data= mpg, geom = "boxplot")
+qplot(reorder(class, hwy), hwy, data= mpg, geom = "boxplot")
+
+#reorder by number of observation
+qplot(reorder(class, hwy, length), hwy, data= mpg, geom = "boxplot")
+qplot(reorder(class, hwy, median), hwy, data= mpg, geom = "boxplot")
+qplot(reorder(class, hwy, median), hwy, data= mpg, geom = c("jitter","boxplot"))
+
+#put jitter layer in front of boxplot
+qplot(reorder(class, hwy, median), hwy, data= mpg, geom = c("boxplot","jitter"), colour = drv)
+```
+## Exploring the diamonds datasetstr(diamonds)
+```{r}
+summary(diamonds)
+head(diamonds)
+tail(diamonds)
+?diamonds
+```
+
+With only one variable, ggplot2 guesses that you want a barchart or histogram
+
+```{r}
+qplot(cut, data = diamonds)
+qplot(carat, data = diamonds)
+# Always testing with binwidth for best visualization
+qplot(carat, data = diamonds, binwidth = 1)
+qplot(carat, data = diamonds, binwidth = 0.1)
+qplot(carat, data = diamonds, binwidth = 0.01)
+# This will tell you the resolution of the variable
+resolution(diamonds$carat)
+last_plot() + xlim(0,3)
+```
+
+Explore the depth by cut
+```{r}
+qplot(depth, data = diamonds, binwidth = 0.2)
+qplot(depth, data = diamonds, binwidth = 0.2, fill = cut) + xlim(55,70)
+qplot(depth, data = diamonds, binwidth = 0.2) + facet_wrap(~ cut)
+# If you want to see how much binwidth is OK then take a look at its range
+range(diamonds$price)
+# Large distance make comparison hard
+qplot(price, data = diamonds, binwidth = 500) + facet_wrap(~ cut)
+# Stacked heighs are difficult to compare
+qplot(price, data = diamonds, binwidth = 500, fill = cut)
+# Much better but still have differing value abundance
+qplot(price, data = diamonds, binwidth = 500, geom = "freqpoly", colour = cut)
+# Instead of display count. Display density
+# .. indicates that variable isn't in original data
+qplot(price, ..density.., data = diamonds, binwidth = 500, geom = "freqpoly", colour = cut)
+```
+
+To set aesthetics to a particular value, you need to wrap that value in `I()` Otherwise qplot will try to map that to your dataset
+```{r}
+qplot(carat, price, data = diamonds, colour = "blue")
+qplot(carat, price, data = diamonds, colour = I("blue"))
+```
+
+Practical application, varying alpha
+```{r}
+qplot(carat, price, data = diamonds, alpha = I(1/10))
+qplot(carat, price, data = diamonds, alpha = I(1/50))
+qplot(carat, price, data = diamonds, alpha = I(1/100))
+qplot(carat, price, data = diamonds, alpha = I(1/250))
+
+```
+
+There are two ways to add additional geom
+```{r}
+# A vector of geom name
+qplot(price, carat, data = diamonds, geom = c("point","smooth"))
+# Add on extra geom
+qplot(price, carat, data = diamonds) + geom_smooth()
+```
+
+This is how you get help for a specific geom (or go to [ggplot2 documentation](http://docs.ggplot2.org/current))
+```{r}
+?geom_smooth
+```
+
+Now explore the relationship between carat, price, clarity
+```{r}
+qplot(price, carat, data = diamonds, colour = cut)
+qplot(log10(price), log10(carat), data = diamonds, colour = cut)
+# Install.packages(hexbin)
+qplot(log10(price), log10(carat), data = diamonds, geom = "bin2d", bins = 50) + facet_wrap(~ cut)
+
+qplot(log10(price), log10(carat), data = diamonds, geom = "smooth", colour = cut)
+
+lm(log10(price) ~ log10(carat), data = diamonds)
+qplot(log10(price), log10(carat), data = diamonds) + facet_wrap(~ cut) + geom_abline(colour = "red", intercept = 3.6, slope = 1.7)
+```
+
