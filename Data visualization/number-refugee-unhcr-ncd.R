@@ -39,7 +39,7 @@ sapply(ref.d, function(x) sum(is.na(x)))
 str(ref.d)
 
 # Biến Country và Country_Origin thành character vì sẽ sửa tên
-ref.d <- ref.d %>% mutate_at(.cols = c("Country", "Country_Origin"), 
+ref.d <- ref.d %>% mutate_at(.cols = c("Country", "Country_Origin"),
                              .funs = as.character)
 ref.d <- ref.d %>% mutate_if(is.integer, as.numeric)
 str(ref.d)
@@ -85,8 +85,8 @@ for (k in 1:length(old.countries)){
 }
 
 # Tính  toán số  người rời  bỏ quê hương mình theo quốc gia:
-ref.count.country <- ref.d %>% 
-  group_by(Country_Origin) %>% 
+ref.count.country <- ref.d %>%
+  group_by(Country_Origin) %>%
   summarise_each(funs(sum(., na.rm = TRUE)), Total)
 
 # 10 quốc gia có nhiều  người bỏ quê hương nhất
@@ -181,36 +181,47 @@ column.name <- ref.d %>%
                names() 
 
 # Chọn màu: 
-mycol <- c("#104E8B", 
-           "#8B1A1A", 
-           "#CD1076", 
-           "#0000CD", 
-           "#8B3A3A", 
-           "#008B00", 
+mycol <- c("#104E8B",
+           "#8B1A1A",
+           "#CD1076",
+           "#0000CD",
+           "#8B3A3A",
+           "#008B00",
            "#EE0000")
 
 
 g <- ggplot(mydf, aes(Year, value)) +
-            geom_bar(aes(fill = variable), stat = "identity") +
-            labs(title = "Number of refugees from 1951 to 2014",
-            subtitle = "Unit: Millions",
-            caption = "Data Source: http://popstats.unhcr.org",
-            x = "",
-            y = "") + 
-            theme_minimal() + 
-            scale_fill_manual(labels = gsub("*_", " ", column.name), values = mycol, 
-            guide_legend(title = "Class")) 
+  geom_bar(aes(fill = variable), stat = "identity") +
+  labs(
+    title = "Number of refugees from 1951 to 2014",
+    subtitle = "Unit: Millions",
+    caption = "Data Source: http://popstats.unhcr.org",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  scale_fill_manual(
+    labels = gsub("*_", " ", column.name),
+    values = mycol,
+    guide_legend(title = "Class")
+  )
 g
 
 # Làm lại cho đẹp  hơn: 
 
-myfunc <- function(x) {x/1000000 }
-g + scale_y_continuous(limits = c(0, 4.5e7), 
-                        breaks = seq(0, 4.5e7, by = 0.5e7), 
-                        labels = myfunc) +
-  scale_x_continuous(limits = c(1950, 2014), 
-                     breaks = seq(1950, 2015, by = 5), 
-                     expand = c(0.01, 0)) + 
+myfunc <- function(x) {
+  x / 1000000
+}
+g + scale_y_continuous(
+  limits = c(0, 4.5e7),
+  breaks = seq(0, 4.5e7, by = 0.5e7),
+  labels = myfunc
+) +
+  scale_x_continuous(
+    limits = c(1950, 2014),
+    breaks = seq(1950, 2015, by = 5),
+    expand = c(0.01, 0)
+  ) +
   theme_light()
 
 

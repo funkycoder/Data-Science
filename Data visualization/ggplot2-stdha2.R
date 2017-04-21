@@ -82,3 +82,25 @@ g + geom_histogram(aes(color = sex), fill = "white", alpha = 0.4, position = "id
     scale_fill_manual(values = c("#00AFBB", "#E7B800")) +
     scale_color_manual(values = c("#00AFBB", "#E7B800"))
   
+#############################################################
+#       HISTOGRAM + DENSITY PLOT
+#############################################################
+# Histogram with density plot
+g + geom_histogram(aes(y = ..density..), colour = "black", fill = "White") +
+    geom_density(alpha = 0.2, fill = "#FF6666")
+
+# Color by groups
+g + geom_histogram(aes(y = ..density.., colour = sex, fill = sex), alpha = 0.5, posision = "identity") +
+    geom_density(aes(color = sex), size = 1)
+
+#############################################################
+#       FREQUENCY POLYGON
+#############################################################
+# Basic plot
+g + geom_freqpoly(bins = 30) +
+    theme_minimal()
+
+# Change color and linetype by sex
+g + geom_freqpoly(aes(color = sex, linetype = sex)) +
+    scale_color_manual(values = c("#999999", "#E69F00")) +
+    theme_minimal()
