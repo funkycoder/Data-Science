@@ -104,3 +104,38 @@ g + geom_freqpoly(bins = 30) +
 g + geom_freqpoly(aes(color = sex, linetype = sex)) +
     scale_color_manual(values = c("#999999", "#E69F00")) +
     theme_minimal()
+
+#############################################################
+#       DOT PLOTS FOR ONE VARIABLE
+#############################################################
+g + geom_dotplot(aes(fill = sex))
+
+#############################################################
+#       ECDF PLOTS (empirical cumulative density function)
+#############################################################
+g + stat_ecdf(geom = "point")
+g + stat_ecdf(gemp = "step")
+
+#############################################################
+#       QQ PLOTS
+#############################################################
+data("mtcars")
+# Convert cyl to factor
+mtcars$cyl <- as.factor(mtcars$cyl)
+head(mtcars[, c("mpg", "cyl")])
+
+p <- ggplot(mtcars, aes(sample = mpg))
+# Basic plot
+p + stat_qq()
+
+# Change point shapes by groups
+# Use custom color palette
+p + stat_qq(aes(shape = cyl, color = cyl)) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07"))
+
+#############################################################
+#       BAR PLOTS OF COUNTS
+#############################################################
+data(mpg)
+ggplot(mpg, aes(fl)) +
+  geom_bar(fill = "steelblue") + theme_minimal()
