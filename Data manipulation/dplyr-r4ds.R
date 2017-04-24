@@ -1,9 +1,11 @@
+#---- Start -----
 ###########################################################################
 #                   R FOR DATA SCIENCE                                    #
 #                       dplyr()                                           #     
 ###########################################################################
-# filter
-#-------
+
+
+#---- filter-----
 library(dplyr)
 library(nycflights13)
 str(flights)
@@ -35,8 +37,7 @@ filter(flights, dep_time == 2400 | between(dep_time, 1, 600))
 # How many flights missing dep_time?
 count(filter(flights, is.na(dep_time)))
 
-# arrange()
-#----------
+#---- arrange()----
 # Sort missing value to the start/ default is at the bottom
 arrange(flights, desc(is.na(dep_delay)))
 
@@ -84,8 +85,7 @@ select(flights, contains("TIME"))
 
 select(flights, one_of(c("year", "month")))
 
-# mutate()
--------------
+#---- mutate()------
 # Create new column at THE END of your data frame
 flights_sm <- select(flights,
                      year:day, 
@@ -121,8 +121,7 @@ transmute(flights,
           dep_time %/% 100,
           dep_time %% 100)
 
-# Offsets
-# -----------
+# Offsets ----
 # shift vector value to the right
 (x <- 1:10)
 lag(x)
@@ -132,8 +131,7 @@ lead(x)
 cumsum(x)
 cummean(x)
 
-# Ranking
-# -------------
+# Ranking ----
 y <- c(1, 2, 2, NA, 3, 4)
 min_rank(y)
 # sort largest first
@@ -181,3 +179,83 @@ head(
 head(transmute(flights, delay_rank = min_rank(desc(dep_delay)), tailnum, time_hour), 10)
 # Test dense_rank like min_rank, but with no gaps between ranks
 head(transmute(flights, delay_rank = dense_rank(desc(dep_delay)), tailnum, time_hour), 10)
+
+#---- Group Summaries -----
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE))
+
+#Average delay by date
+flights %>% 
+  group_by(year, month, day) %>% 
+  summarise(delay = mean(dep_delay, na.rm = TRUE))
+
+#----- Pipe -------
+delay <- flights %>%
+  group_by(dest) %>%
+  summarise(
+    count = n(),
+    dist = mean(distance, na.rm = TRUE),
+    delay = mean(arr_delay, na.rm = TRUE)
+  ) %>%
+  filter(count > 20, dest != "HNL")
+ggplot(data = delay, mapping = aes(x = dist, y = delay)) +
+  geom_point(aes(size = count), alpha = 1 / 3) +
+  geom_smooth(se = FALSE)
+
+# ---- Missing Values ------
+# What happens if we dont use na.rm?
+flights %>%
+  group_by(year, month, day) %>%
+  summarize(mean = mean(dep_delay))
+# Now you can remove missing values (cancel flights)
+flights %>%
+  group_by(year, month, day) %>%
+  summarize(mean = mean(dep_delay, na.rm = TRUE))
+# You can first filter out the cancelled flights
+not_cancelled <- flights %>%
+  filter(!is.na(dep_delay),!is.na(arr_delay))
+# then calculate as usual
+not_cancelled %>%
+  group_by(year, month, day) %>%
+  summarise(mean = mean(dep_delay))
+
+# ---- Counts -----
+# Look at planes that have the highest average delays
+not_cancelled %>%
+  group_by(tailnum) %>%
+  summarize(delay = mean(arr_delay)) %>%
+  ggplot(mapping = aes(x = delay)) +
+  geom_freqpoly(binwidth = 10)
+
+# Draw a scatter plot of number of flights vs average delaydelay
+not_cancelled %>%
+  group_by(tailnum) %>%
+  summarise(delay = mean(arr_delay),
+            n = n()) %>%
+  ggplot(mapping = aes(x = n, y = delay)) +
+  geom_point(alpha = 1 / 10)
+# So you see that the variation decreases as the sample size increases
+not_cancelled %>%
+  group_by(tailnum) %>%
+  summarise(delay = mean(arr_delay),
+            n = n()) %>%
+  filter(n > 25) %>%
+  ggplot(mapping = aes(x = n, y = delay)) +
+  geom_point(alpha = 1 / 10)
+
+# Using the Lahman package
+batting <- as_tibble(Lahman::Batting)
+batters <- batting %>% 
+  group_by(playerID) %>% 
+  summarise(
+    ba = sum(H, na.rm = TRUE)/ sum(AB, na.rm = TRUE),
+    ab = sum(AB, na.rm = TRUE)
+  )
+batters %>%
+  filter(ab > 100) %>%
+  ggplot(mapping = aes(x = ab, y = ba)) +
+    geom_point() +
+    geom_smooth(se = FALSE)
+#If you naively sort on desc(ba), the people with the best batting average are
+#clearly lucky not skilled
+batters %>% 
+  arrange(desc(ba))
