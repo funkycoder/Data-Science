@@ -259,3 +259,96 @@ batters %>%
 #clearly lucky not skilled
 batters %>% 
   arrange(desc(ba))
+
+#######################
+# Useful summary functions -----
+not_cancelled <- flights %>%
+  filter(!is.na(dep_delay),!is.na(arr_delay))
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarize(
+    # average delay
+    avg_delay1 = mean(arr_delay),
+    # average positive delay
+    avg_delay2 = mean(arr_delay[arr_delay > 0])
+  )
+
+# Why is distance to some destinations are more variable than to others?
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarize(distance_sd = sd(distance)) %>% 
+  arrange(desc(distance_sd))
+
+# Measures of min(x), quantile(x, 0.25), max(x)
+# When do first and last flights leave each day
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarise(
+    first = min(dep_time),
+    last = max(dep_time)
+  )
+
+# Measures of position first(x), nth(x, 2), last(x)
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarize(
+    first_dep = first(dep_time),
+    last_dep = last(dep_time)
+  )
+# Filter on rank
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  mutate(r = min_rank(desc(dep_time))) %>% 
+  select(year:day, tailnum, dep_time, r) %>% 
+  filter(r %in% range(r))
+# Counts
+# Which destinations have the most carriers
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarize(carriers = n_distinct(carrier)) %>% 
+  arrange(desc(carriers))
+# Quick counts
+not_cancelled %>% 
+  count(dest)
+# weight variable
+not_cancelled %>% 
+  count(tailnum, wt = distance)
+
+# How many flights left before 5am? these usually indicate delayed flights from 
+# the previous day
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarise(n_early = sum(dep_time < 500))
+# What proportion of flights are delayed more than an hour
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarize(hour_perc = mean(arr_delay > 60))
+
+####################
+# Grouping by multiple variables ----
+daily <- group_by(flights, year, month, day)
+(per_day <- summarise(daily, flights = n()))
+(per_month <- summarise(per_day, flights = sum(flights)))
+(per_year <- summarize(per_month, flights =sum(flights)))
+
+head(daily)
+daily %>% 
+  ungroup() %>% 
+  summarise(flighs = n())
+# Group mutates (and filters) ----
+# Find the worst member of each group
+flights_sm %>% 
+  group_by(year, month, day) %>% 
+  filter(rank(desc(arr_delay)) < 10)
+
+# All groups bigger than a threshold
+popular_dests <- flights %>% 
+  group_by(dest) %>% 
+  filter(n() > 365)
+popular_dests
+
+# Standardize to compute per group metrics
+popular_dests %>% 
+  filter(arr_delay > 0) %>% 
+  mutate(prop_delay = arr_delay / sum(arr_delay)) %>% 
+  select(year:day, dest, arr_delay, prop_delay)

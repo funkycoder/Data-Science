@@ -4,6 +4,17 @@
 # Date : April 26, 2017 (Wednesday)
 # url: http://www.rpubs.com/tkvit/228141                  #
 ###########################################################
+# Load libraries
+library(tidyverse)
+library(xts)
+library(dygraphs)
+# or
+pkg <- c("tidyverse",
+         "xts",
+         "dygraphs"
+)
+lapply(pkg, require, character.only = TRUE)
+
 rm(list = ls())
 library(tidyverse)
 df <- read.csv("Data visualization/data/NationalNames.csv",
@@ -62,3 +73,35 @@ top1_years(f.top5)
     arrange(desc(n_count)) %>% 
     slice(1:10)
 )
+###################################
+# Dygraph most variant names ------
+###################################
+variance <- df %>% 
+  group_by(Name) %>% 
+  summarise(sd = sd(Count))%>%
+  na.omit() %>% 
+  filter(sd != 0) %>% 
+  filter (sd > mean(sd)) %>% 
+  ungroup() %>% 
+  arrange(desc(sd)) %>% slice(1:5)
+
+quelnoms <- df %>% filter(Name %in% variance$Name) %>% 
+  select(Name,Year,Count)
+
+quelnoms1 <- quelnoms %>% group_by(Name,Year) %>% 
+  summarise(count = sum(Count))  %>% 
+  mutate(Year = ymd(paste0(Year,"0101")))
+
+# Spread the data
+quelnoms1 <- spread(quelnoms1, Name, count) 
+
+#convert to time series data class
+timeserie <-xts(quelnoms1, order.by = quelnoms1$Year)
+
+#dygraph
+dygraph(timeserie) %>% 
+  dyRangeSelector() %>%
+  dyHighlight(highlightCircleSize = 4, 
+              highlightSeriesBackgroundAlpha = 0.5,
+              hideOnMouseOut = TRUE)%>%
+  dyLegend(show = "follow")
