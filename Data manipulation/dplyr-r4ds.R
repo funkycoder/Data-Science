@@ -3,11 +3,12 @@
 #                   R FOR DATA SCIENCE                                    #
 #                       dplyr()                                           #     
 ###########################################################################
-
-
-#---- filter-----
+# Load necessary libraries
 library(dplyr)
 library(nycflights13)
+library(ggplot2)
+
+#---- filter-----
 str(flights)
 # All flights had an arrival delay of two or more hours
 filter(flights, arr_delay >= 120)
@@ -352,3 +353,57 @@ popular_dests %>%
   filter(arr_delay > 0) %>% 
   mutate(prop_delay = arr_delay / sum(arr_delay)) %>% 
   select(year:day, dest, arr_delay, prop_delay)
+
+# Exercise ----
+# Another approach
+not_cancelled %>% 
+  count(dest)
+
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarise(n())
+
+not_cancelled %>% 
+  count(tailnum, wt = distance)
+
+not_cancelled %>% 
+  group_by(tailnum) %>% 
+  summarise(sum(distance))
+# Cancelled flights per day
+daily_cancelled <- flights %>%
+  group_by(year, month, day) %>%
+  filter(is.na(dep_delay), is.na(arr_delay)) %>%
+  summarise(flight_cancelled = n())
+g <- ggplot(daily_cancelled, aes(x = flight_cancelled))
+g + geom_histogram(bins = 100) +
+    geom_vline(aes(xintercept = mean(flight_cancelled), color = "#FC4E07"),
+             linetype = "dashed",
+             size = 1)
+# Proportion of cancelled flight vs average delay
+dat <- flights %>%
+  group_by(year, month, day) %>%
+  summarise(cancelled_perc = mean(is.na(arr_delay)),
+            avg_delay = mean(arr_delay, na.rm = TRUE))
+ggplot(dat, mapping= aes(x = avg_delay, y = cancelled_perc * 100)) +
+  geom_point() +
+  geom_smooth(se = FALSE)
+
+# Worst delay carriers
+flights %>% 
+  group_by(carrier, dest) %>% 
+  summarize(Count = n(), avg_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  # Get the max delay only with frequent flight (>50 flight)
+  filter(Count > 50, avg_delay == max(avg_delay)) %>% 
+  arrange(desc(avg_delay))
+
+# Average delay by carrier
+flights %>% 
+  group_by(carrier) %>% 
+  summarise(avg_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  arrange(desc(avg_delay))
+# Average delay by destination
+flights %>%
+  group_by(dest) %>% 
+  summarise(avg_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  arrange(desc(avg_delay))
+  
