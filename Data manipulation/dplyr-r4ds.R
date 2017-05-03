@@ -406,4 +406,147 @@ flights %>%
   group_by(dest) %>% 
   summarise(avg_delay = mean(arr_delay, na.rm = TRUE)) %>% 
   arrange(desc(avg_delay))
-  
+
+# Ex-Group and Mutate Filter ----
+
+# Q2-Group and Mutate Filter ---- 
+# Which plane have the worst on-time record
+flights %>%
+  group_by(tailnum) %>% 
+  summarise(mean_arr_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  # ungroup() %>%
+  filter(rank(desc(mean_arr_delay)) <= 1)
+
+# Q3-Group and Mutate Filter ---- 
+# What time of day should you fly if you want to avoid delays as much as
+# possible Let’s group by hour. The earlier the better to fly. This is intuitive
+# as delays early in the morning are likely to propogate throughout the day.
+flights %>%
+  group_by(hour) %>%
+  summarise(avg_delay = mean(arr_delay, na.rm = TRUE)) %>%
+  arrange(avg_delay)
+
+flights %>% 
+  group_by(hour) %>% 
+  summarise(arr_delay = mean(arr_delay, na.rm = TRUE))
+
+# Q4-Group and Mutate Filter ---- 
+# For each destination, compute the total minutes of delay. 
+# For each, flight,compute the proportion of the total delay for its destination.
+flights %>% 
+  count(dest, wt = arr_delay, sort = TRUE)
+
+flights %>%
+  filter(!is.na(arr_delay), arr_delay > 0) %>%
+  group_by(dest) %>%
+  mutate(total_delay = sum(arr_delay),
+         prop_delay = arr_delay / total_delay) %>% 
+  select(tailnum, dest, total_delay, prop_delay)
+
+# Alternatively, consider the delay as relative to the minimum delay for any
+# flight to that destination. Now all non-cancelled flights have a proportion.
+flights %>% 
+  filter(!is.na(arr_delay), arr_delay > 0) %>%  
+  group_by(dest) %>%
+  mutate(total_delay = sum(arr_delay - min(arr_delay)),
+         prop_delay = arr_delay / sum(arr_delay))
+
+
+# Q5-Group and Mutate Filter ---- 
+# Delays are typically temporally correlated: even once the problem that caused
+# the initial delay has been resolved, later flights are delayed to allow
+# earlier flights to leave. Using lag() explore how the delay of a flight is
+# related to the delay of the immediately preceding flight. We want to group by
+# day to avoid taking the lag from the previous day. Also, I want to use
+# departure delay, since this mechanism is relevant for departures. Also, I
+# remove missing values both before and after calculating the lag delay.
+# However, it would be interesting to ask the probability or average delay after
+# a cancellation.
+
+flights %>%
+  group_by(year, month, day) %>%
+  filter(!is.na(dep_delay)) %>%
+  mutate(lag_delay = lag(dep_delay)) %>%
+  filter(!is.na(lag_delay)) %>%
+  ggplot(aes(x = dep_delay, y = lag_delay)) +
+  geom_point() +
+  geom_smooth()
+
+
+# Q6-Group and Mutate Filter ---- 
+# Look at each destination. Can you find flights that are suspiciously fast?
+# (i.e. flights that represent a potential data entry error). Compute the air
+# time a flight relative to the shortest flight to that destination. Which
+# flights were most delayed in the air? 
+
+# The shorter BOS and PHL flights that are
+# 20 minutes for 30+ minutes flights seem plausible - though maybe entries of
+# +/- a few minutes can easily create large changes. I assume that departure
+# time has a standardized definition, but I’m not sure; if there is some
+# discretion, that could create errors that are small in absolute time, but
+# large in relative time for small flights. The ATL, GSP, an BNA flights looks a
+# little suspicious as it’s almost half the time for longer flights.
+
+flights %>%
+  filter(!is.na(air_time)) %>%
+  group_by(dest) %>%
+  mutate(med_time = median(air_time),
+         fast = (air_time - med_time) / med_time) %>%
+  arrange(fast) %>%
+  select(air_time,
+         med_time,
+         fast,
+         dep_time,
+         sched_dep_time,
+         arr_time,
+         sched_arr_time,
+         tailnum) %>%
+  head(15)
+
+# I could also try a z-score. Though the sd and mean will be affected by large delays.
+flights %>%
+  filter(!is.na(air_time)) %>%
+  group_by(dest) %>%
+  mutate(
+    air_time_mean = mean(air_time),
+    air_time_sd = sd(air_time),
+    z_score = (air_time - air_time_mean) / air_time_sd
+  ) %>%
+  arrange(z_score) %>%
+  select(
+    z_score,
+    air_time_mean,
+    air_time_sd,
+    air_time,
+    dep_time,
+    sched_dep_time,
+    arr_time,
+    sched_arr_time
+  )
+
+flights %>%
+  filter(!is.na(air_time)) %>%
+  group_by(dest) %>%
+  mutate(air_time_diff = air_time - min(air_time)) %>%
+  arrange(desc(air_time_diff)) %>%
+  select(dest,
+         year,
+         month,
+         day,
+         carrier,
+         flight,
+         air_time_diff,
+         air_time,
+         dep_time,
+         arr_time) %>%
+  head()
+
+# Q7-Group and Mutate Filter ---- 
+# THIS QUESTION IS NOT YET SOLVED!
+# Find all destinations that are flown by at least two carriers.
+# Use that information to rank the carriers
+flights %>% 
+  group_by(dest) %>% 
+  count(carrier) %>% 
+  group_by(carrier) %>% 
+  count(sort = TRUE)

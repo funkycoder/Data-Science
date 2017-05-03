@@ -1,0 +1,164 @@
+---
+title: "Visualizing Tennis Grand Slam Winners Performances"
+author: "Giorgio Garziano"
+date: "May 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Data visualization of sports historical results is one of the means by which champions strengths and weaknesses comparison can be outlined. In this tutorial, we show what plots flavors may help in champions performances comparison, timeline visualization, player-to-player and player-to-tournament relationships. We are going to use the Tennis Grand Slam Tournaments results as outlined by the ESP site at: [ESPN site tennis history table](http://www.espn.com/tennis/history) and which has been made available as tab-delimited file at the following link: [tennis-grand-slam-winners](https://datascienceplus.com/wp-content/uploads/2017/04/tennis-grand-slam-winners.txt)
+
+Our analysis shall involve basic dataset manipulation as well. Overall, we are going to take advantage of the following R packages:
+
+`library(ggplot2)` #for barplots  
+`library(gplots)` #for heatmaps  
+`library(RColorBrewer)` #for palettes  
+`library(dplyr)` #for dataset manipulation  
+`library(knitr)` #for neaty dataset printing  
+`library(timelineS)` #for timeline plot  
+`library(circlize)` #for chord-diagrams  
+`library(fmsb)` #for radar plots  
+
+## Analysis
+Loading R libraries and importing the Tennis Grand Slam Winners dataset.
+```{r}
+library_toload <-
+  c(
+  "dplyr",
+  "knitr",
+  "ggplot2",
+  "gplots",
+  "RColorBrewer",
+  "timelineS",
+  "circlize",
+  "fmsb"
+  )
+  invisible(lapply(library_toload, function(x) {
+  suppressPackageStartupMessages(library(x, character.only = TRUE))
+  }))
+  
+  
+  url_file <- "https://datascienceplus.com/wp-content/uploads/2017/04/tennis-grand-slam-winners.txt"
+  slam_win <-  read.delim(url(url_file), sep = "\t", stringsAsFactors = FALSE)
+  kable(head(slam_win, 20))
+```
+A minor fix to the tournaments data column is needed to have same naming for the Australian Open tournament.
+
+```{r}
+slam_win[grep("Australian Open", slam_win$TOURNAMENT), "TOURNAMENT"] = "Australian Open"
+```
+## Barplot
+Grouping by winner and summarising the number of wins are preliminary steps in order to compute a table where each champion name is associated to his own number of Tennis Grand Slam wins.
+```{r}
+slam_top_chart <- slam_win %>%
+  group_by(WINNER) %>%
+  summarise(NUM_WINS = n()) %>%
+  arrange(desc(NUM_WINS))
+
+kable(head(slam_top_chart, 40))
+```
+
+To graphically introduce such table, a barplot reporting winners ordered by their number of wins is suggestable. In that way, we can evaluate the players performance from the absolute perspective and relative to each other. Our barplot involves the champions who won at least four Tennis Grand Slam tournaments.
+
+```{r}
+slam_top_chart$WINNER <-
+  factor(slam_top_chart$WINNER, levels = slam_top_chart$WINNER[order(slam_top_chart$NUM_WINS)])
+  
+top_winners_gt4 <-  slam_top_chart %>%
+                    filter(NUM_WINS >= 4)
+the_colours <-  c(
+  "#FF4000FF",
+  "#FF8000FF",
+  "#FFFF00FF",
+  "#80FF00FF",
+  "#00FF00FF",
+  "#00FF80FF",
+  "#00FFFFFF",
+  "#0080FFFF",
+  "#FF00FFFF",
+  "#000000FF",
+  "#0000FFFF"
+  )
+
+ggplot(data = top_winners_gt4, aes(x = WINNER, y = NUM_WINS, fill = NUM_WINS)) +
+  geom_bar(stat = 'identity') + coord_flip() + guides(fill = FALSE) +
+  scale_fill_gradientn(colours = the_colours)
+
+```
+
+Further, to facilitate comparison of champions’ performances for each specific tournament, the grouping by TOURNAMENT and WINNER is necessary.
+```{r}
+slam_top_chart_by_trn <-  slam_win %>%
+  filter(WINNER %in% top_winners_gt4$WINNER) %>%
+  group_by(TOURNAMENT, WINNER) %>%
+  summarise(NUM_WINS = n()) %>%
+  arrange(desc(NUM_WINS))
+  
+slam_top_chart_by_trn$NUM_WINS <- factor(slam_top_chart_by_trn$NUM_WINS)
+
+kable(head(slam_top_chart_by_trn, 10))
+```
+
+To obtain the required barplot flavor, we take specifically advantage of the discrete scale for y axis and the facet_grid based on the TOURNAMENT field.
+
+```{r}
+ggplot(data = slam_top_chart_by_trn, aes(x = WINNER, y = NUM_WINS, fill = NUM_WINS)) +
+  geom_bar(stat = 'identity') + coord_flip() + guides(fill = FALSE) + scale_y_discrete() +
+  facet_grid(. ~ TOURNAMENT)
+```
+
+HeatmapTo highlight how many times champions met each other on Grand Slam tournament finals, we may take advantage of an heatmap. The heatmap rows and columns entries are populated with champions names and each cell reports how many times such players met in the tournament final. A gradient colouring is used for better distinguishing the number of wins. We are going to take advantage of the heatmap.2() function made available by the gplots package which provides some more options with respect heatmap(). We consider the fifty most recent sport events.
+```{r}
+tl_rec <- 1:50
+winner_runnerup <- slam_win[tl_rec, c("WINNER", "RUNNER.UP")]
+winner_runnerup_names <- unique(c(winner_runnerup[,1], winner_runnerup[,2]))
+
+match_matrix <- matrix(0, nrow=length(winner_runnerup_names),
+                       ncol=length(winner_runnerup_names))
+colnames(match_matrix) <- winner_runnerup_names
+rownames(match_matrix) <- winner_runnerup_names
+
+for(i in 1:nrow(winner_runnerup)) {
+  winner <- winner_runnerup[i, "WINNER"]
+  runner_up <- winner_runnerup[i, "RUNNER.UP"]
+  r <- which(rownames(match_matrix) == winner)
+  c <- which(colnames(match_matrix) == runner_up)
+
+  match_matrix[r,c] <- match_matrix[r,c] + 1
+  match_matrix[c,r] <- match_matrix[c,r] + 1
+}
+
+diag(match_matrix) <- NA
+```
+
+That matrix reporting the counting of players’ pairs finals can be used as heatmap.2 function input.
+```{r}
+my_palette <- colorRampPalette(c("green", "yellow", "red"))(n = 299)
+col_breaks = c(seq(0, 0.99, length=100),  # for green
+               seq(1, 5, length=100),     # for yellow
+               seq(5.01, 10, length=100)) # for red
+heatmap.2(match_matrix,
+          cellnote = match_matrix,  # same data set for cell labels
+          main = "Tennis Grand Slam Champions - Finals Match Heatmap", # heat map title
+          notecol = "black",      # change font color of cell labels to black
+          density.info = "none",  # turns off density plot inside color legend
+          trace = "none",         # turns off trace lines inside the heat map
+          margins = c(12,9),     # widens margins around plot
+          col= my_palette,       # use on color palette defined earlier
+          breaks = col_breaks,    # enable color transition at specified limits
+          dendrogram = "none",     # only draw a row dendrogram
+          Colv = "NA")
+
+```
+
+
+
+
+
+
+
+
