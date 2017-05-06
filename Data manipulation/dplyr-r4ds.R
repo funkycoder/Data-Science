@@ -354,8 +354,30 @@ popular_dests %>%
   mutate(prop_delay = arr_delay / sum(arr_delay)) %>% 
   select(year:day, dest, arr_delay, prop_delay)
 
-# Exercise ----
-# Another approach
+# Ex-Grouping by multi varialbes ----
+# Q1-Grouping by multi varialbes ----
+# Brainstorm at least 5 different ways to assess the typical delay
+# characteristics of a group of flights. Consider the following scenarios: 
+# A flight is 15 minutes early 50% of the time, and 15 minutes late 50% of the time.
+# A flight is always 10 minutes late.
+# A flight is 30 minutes early 50% of the time, and 30 minutes late 50% of the time.
+# 99% of the time a flight is on time. 1% of the time it’s 2 hours late.
+# Which is more important: arrival delay or departure delay?
+# 
+# Arrival delay is more important. Arriving early is nice, but equally as good
+# as arriving late is bad. Variation is worse than consistency; if I know the
+# plane will always arrive 10 minutes late, then I can plan for it arriving as
+# if the actual arrival time was 10 minutes later than the scheduled arrival
+# time.
+# 
+# So I’d try something that calculates the expected time of the flight, and then
+# aggregates over any delays from that time. I would ignore any early arrival
+# times. A better ranking would also consider cancellations, and need a way to
+# convert them to a delay time (perhaps using the arrival time of the next
+# flight to the same destination).
+
+# Q2-Grouping by multi varialbes ----
+# Come up with another approach that will give you the same output as not_cancelled %>% count(dest)
 not_cancelled %>% 
   count(dest)
 
@@ -369,6 +391,26 @@ not_cancelled %>%
 not_cancelled %>% 
   group_by(tailnum) %>% 
   summarise(sum(distance))
+
+# Q3-Grouping by multi varialbes ----
+# Our definition of cancelled flights (is.na(dep_delay) | is.na(arr_delay)) is
+# slightly suboptimal. Why? Which is the most important column?
+# 
+# If a flight doesn’t depart, then it won’t arrive. A flight can also depart and
+# not arrive if it crashes; I’m not sure how this data would handle flights that
+# are redirected and land at other airports for whatever reason.
+# 
+# The more important column is arr_delay so we could just use that.
+
+filter(flights, !is.na(dep_delay), is.na(arr_delay)) %>%
+  select(dep_time, arr_time, sched_arr_time, dep_delay, arr_delay)
+
+# Q3-Grouping by multi varialbes ---- 
+# Look at the number of cancelled flights per day.
+#Is there a pattern? Is the proportion of cancelled flights related to the average delay?
+
+
+
 # Cancelled flights per day
 daily_cancelled <- flights %>%
   group_by(year, month, day) %>%

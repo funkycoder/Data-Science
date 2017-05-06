@@ -155,10 +155,115 @@ heatmap.2(match_matrix,
 
 ```
 
+## Dendrogram plot
+In case we would like to group champions based on some specific similarity metric and show the result, we can take advantage of the dendrogram plot. So, considering the first twenty champions of our top list as determined in previous steps, we get the following table:
+
+```{r}
+ch_n <- 1:20
+kable(slam_top_chart[ch_n, ])
+```
+
+We specify an euclidean metrics distance for clustering based on champions’ wins. Groups are determined based on wins difference equal to two, (see h_value parameter).
+
+```{r}
+wins <- slam_top_chart[ch_n,-1]
+d_wins <- dist(wins, method = "euclidean")
+hclust_fit <- hclust(d_wins)
+h_value <- 2
+groups <- cutree(hclust_fit, h = h_value)
+plot(hclust_fit, labels = slam_top_chart$WINNER[ch_n], main = "Champions Dendrogram")
+rect.hclust(hclust_fit, h = h_value, border = "blue") 
+
+```
 
 
+## Timeline plot
+The timeline plot may be the right choice to highlight how the wins sequence happened. Our timeline plot shows winners’ names together with tournaments and calendar dates. All that considering the twenty most recent results. The year column data is enhanced to match the date format.
+```{r}
+year_to_date_trnm <- function(the_year, the_trnm) {
+  the_date <- NULL
+  if (the_trnm == "Australian Open") {
+    the_date <- (paste(the_year, "-01-31", sep=""))
+  } else if (the_trnm == "French Open") {
+    the_date <- (paste(the_year, "-06-15", sep=""))
+  } else if (the_trnm == "Wimbledon") {
+    the_date <- (paste(the_year, "-07-15", sep=""))
+  } else if (the_trnm == "U.S. Open") {
+    the_date <- (paste(the_year, "-09-07", sep=""))
+  }
+  the_date
+}
 
+slam_win$YEAR_DATE <- as.Date(mapply(year_to_date_trnm, slam_win$YEAR, slam_win$TOURNAMENT))
+tl_rec <- 1:20
+timelineS(slam_win[tl_rec, c("WINNER", "YEAR_DATE")], line.color = "red", scale.font = 3,
+          scale = "month", scale.format = "%Y", label.cex = 0.7, buffer.days = 100,
+          labels = paste(slam_win[tl_rec, "WINNER"], slam_win[tl_rec, "TOURNAMENT"]))
 
+```
 
+## Chord Diagram
+Suppose you want to highlight for relationship between champions and tournaments wins while having an idea of the reciprocal strength in that. The chord diagram may be a good solution for such purpose. Herein below, we filter
+out a dataset where champions with more than ten Grand Slam tournaments wins are encompassed.
+```{r}
+top_winners_gt10 = slam_top_chart %>% filter(NUM_WINS > 10)
+kable(head(top_winners_gt10))
+```
+
+We then take advantage of an inner join between the Grand Slam dataset we started with and the list above. Further, the grouping by tournament and winner and the computation of total wins per tournament gives the following table.
+```{r}
+slam_win_cnt <-  inner_join(slam_win, top_winners_gt10) %>%
+  select(TOURNAMENT, WINNER) %>%
+  group_by(WINNER, TOURNAMENT) %>%
+  summarise(NUM_WINS = n()) %>%
+  arrange(TOURNAMENT, desc(NUM_WINS))
+kable(slam_win_cnt)
+```
+
+The latter dataset is the input to the chordDiagram function.
+
+```{r}
+chordDiagram(slam_win_cnt)
+```
+
+## Radar plot
+In case we want to highlight champions’ strengths and weaknesses in each specific Grand Slam tournament, a radar plot may be a good choice. Herein below, the radar plots associated to well known tennis champions are shown.
+```{r}
+champion_radar_plot <- function(df, champion_name) {
+  # Filter data for the champion
+  slam_win_cnt_chp = df %>% filter(WINNER == champion_name)
+  chp_num_wins <- slam_win_cnt_chp$NUM_WINS
+  l <- length(chp_num_wins)
+  max_v <- 10 # choosing the same maximum value for all champions
+  chp_df <-  data.frame(rbind(max = rep(max_v, l), min = rep(0, l), chp_num_wins))
+  colnames(chp_df) <- slam_win_cnt_chp$TOURNAMENT
+  seg_n <- max_v
+  radarchart(
+    chp_df,
+    axistype = 1,
+    caxislabels = seq(0, max_v, 1),
+    seg = seg_n,
+    centerzero = TRUE,
+    pcol = rgb(0.2, 0.5, 0.5, 0.9) ,
+    pfcol = rgb(0.2, 0.5, 0.5, 0.3),
+    plwd = 1,
+    cglcol = "grey",
+    cglty = 1,
+    axislabcol = "blue",
+    vlcex = 0.8,
+    calcex = 0.7,
+    title = champion_name
+    )
+  
+}
+
+champion_radar_plot(slam_win_cnt, "Roger Federer")
+champion_radar_plot(slam_win_cnt, "Rafael Nadal")
+champion_radar_plot(slam_win_cnt, "Novak Djokovic")
+```
+
+## Conclusions
+In this tutorial, we showed different flavors of plots capable to capture many insights of our Tennis Grand Slam tournaments dataset. By means of basic preliminary dataset manipulation and powerful plots, we obtained effective visualizations that can drive the audience attention right to the messages we want to deliver to.
+If you have any questions, please feel free to comment below.
 
 
