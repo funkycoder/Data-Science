@@ -6,7 +6,8 @@ library(lmSupport)
 library(ggfortify)
 library(relaimpo)
 library(effects)
-
+library(car)
+library(gvlma)
 # Load dataset ----
 df <- read.spss("data/linoutcomeprediction.sav", to.data.frame = TRUE)
 head(df)
@@ -135,16 +136,6 @@ ggplot(re.sample, aes(x = Rsquared)) +
 
 # Elements role ----
 boot <-
-  relimp(
-    mod,
-    b = 1000,
-    type = c("lmg", "last", "first", "pratt"),
-    rank = TRUE,
-    diff = TRUE,
-    rela = TRUE
-  )
-
-boot <-
   boot.relimp(
     mod,
     b = 1000,
@@ -153,7 +144,6 @@ boot <-
     diff = TRUE,
     rela = TRUE
   )
-
 booteval.relimp(boot)
 plot(booteval.relimp(boot,sort=FALSE))
 
@@ -161,7 +151,7 @@ plot(booteval.relimp(boot,sort=FALSE))
 confint(mod, level = 0.95)
 plot(allEffects(mod))
 
-df$pred <- predict(lm,df)
+df$pred <- predict(lm, df)
 ggplot(df, aes(color = treatment)) +
   geom_point(aes(x = age, y = hoursofsleep), size = 3, alpha = 0.5) +
   geom_smooth(aes(x = age, y = pred), method = "lm") +
@@ -171,3 +161,40 @@ ggplot(df, aes(fill = treatment)) +
   geom_point(aes(x = treatment, y = hoursofsleep), size = 3, alpha = 0.5) +
   geom_boxplot(aes(x = treatment, y = pred)) +
   theme_bw()
+
+# Checking model ----
+par(mfrow = c(2, 2))
+plot(mod, which = 1:4)
+# Outliers? Leverage point?
+par(mfrow=c(1,1))
+outlierTest(mod)
+qqPlot(mod)
+avPlots(mod)
+leveragePlots(mod)
+influence.measures(mod)
+summary(influence.measures(mod))
+# Cook distance
+cutoff <- 4/((nrow(df)-length(mod$coefficients)-2))
+cutoff
+summary(cooks.distance(mod)>=cutoff)
+plot(mod, which=4,cook.levels=cutoff)
+influencePlot(mod, id.method = "identify")
+# Studenized residuals
+library(MASS)
+sresid <- studres(mod)
+hist(sresid, freq=FALSE,main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=60)
+yfit<-dnorm(xfit)
+lines(xfit, yfit,col="red") 
+# Non-constant error variance
+ncvTest(mod)
+spreadLevelPlot(mod)
+# Non-linear relationship
+crPlots(mod)
+# Multi-colinearity
+durbinWatsonTest(mod)
+vif(mod)
+sqrt(vif(mod)) > 2
+# Distribution assumptions
+gvmodel <- gvlma(mod)
+summary(gvmodel)
