@@ -1,0 +1,125 @@
+---
+title: "Linear model"
+author: "Jose Portilla"
+date: "May 13, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Get your data
+We will use the Student Performance Data Set from [UC Irvine's Machine Learning Repository!](https://archive.ics.uci.edu/ml/datasets/Student+Performance) Download this data our just use the supplied csv files in the notebook repository. We'll specifically look at the math class (student-mat.csv). Make sure to take note that the delimiter is a semi-colon.
+
+```{r}
+# Read data
+df <- read.csv('data/student-mat.csv', sep = ';')
+head(df)
+summary(df)
+```
+
+## Attribute Information
+Here is the attribute information for our data set: Attribute Information:
+Attributes for both student-mat.csv (Math course) and student-por.csv (Portuguese language course) datasets:
+
+1.  school - student's school (binary: 'GP' - Gabriel Pereira or 'MS' - Mousinho da Silveira) 
+2.  sex - student's sex (binary: 'F' - female or 'M' - male) 
+3.  age - student's age (numeric: from 15 to 22) 
+4.  address - student's home address type (binary: 'U' - urban or 'R' - rural) 
+5.  famsize - family size (binary: 'LE3' - less or equal to 3 or 'GT3' - greater than 3) 
+6.  Pstatus - parent's cohabitation status (binary: 'T' - living together or 'A' - apart) 
+7.  Medu - mother's education (numeric: 0 - none, 1 - primary education (4th grade), 2 - 5th to 9th grade, 3 - secondary education or 4 - higher education) 
+8.  Fedu - father's education (numeric: 0 - none, 1 - primary education (4th grade), 2 - 5th to 9th grade, 3 - secondary education or 4 - higher education) 
+9. Mjob - mother's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other') 
+10. Fjob - father's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other') 
+11. reason - reason to choose this school (nominal: close to 'home', school 'reputation', 'course' preference or 'other') 
+12. guardian - student's guardian (nominal: 'mother', 'father' or 'other') 
+13. traveltime - home to school travel time (numeric: 1 - less than 15 min, 2 - 15 to 30 min., 3 - 30 min to 1 ho.ur, or 4 - more than 1 hour) 
+14. studytime - weekly study time (numeric: 1 - less than 2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - more th.an 10 hours) 
+15. failures - number of past class failures (numeric: n if between 1 and 3 , else 4) 
+16. schoolsup - extra educational support (binary: yes or no) 
+17. famsup - family educational support (binary: yes or no) 
+18. paid - extra paid classes within the course subject (Math or Portuguese) (binary: yes or no) 
+19. activities - extra-curricular activities (binary: yes or no) 
+20. nursery - attended nursery school (binary: yes or no) 
+21. higher - wants to take higher education (binary: yes or no) 
+22. internet - Internet access at home (binary: yes or no) 
+23. romantic - with a romantic relationship (binary: yes or no) 
+24. famrel - quality of family relationships (numeric: from 1 - very bad to 5 - excellent) 
+25. freetime - free time after school (numeric: from 1 - very low to 5 - very high) 
+26. goout - going out with friends (numeric: from 1 - very low to 5 - very high) 
+27. Dalc - workday alcohol consumption (numeric: from 1 - very low to 5 - very high) 
+28. Walc - weekend alcohol consumption (numeric: from 1 - very low to 5 - very high) 
+29. health - current health status (numeric: from 1 - very bad to 5 - very good) 
+30. absences - number of school absences (numeric: from 0 to 93) 
+th.ese grades are related with the course subject, Math or Portuguese:
+31. G1 - first period grade (numeric: from 0 to 20) 
+31. G2 - second period grade (numeric: from 0 to 20) 
+32. G3 - final grade (numeric: from 0 to 20, output target).
+
+## Clean the Data
+Next we have to clean this data. This data is actually already cleaned for you, But here are some things you may want to consider doing for other data sets:
+Check for NA values
+```{r}
+# Let's see if we have any NA values:
+any(is.na(df))
+```
+
+Great! Most real data sets will probably have NA or Null values, so its always good to check! Its up to you how to deal with them, either dropping them if they aren't too many, or imputing other values, like the mean value.
+
+## Categorical Features
+Moving on, let's make sure that categorical variables have a factor set to them. For example, the MJob column refers to categories of Job Types, not some numeric value from 1 to 5. R is actually really good at detecting these sort of values and will take of this work for you a lot of the time, but always keep in mind the use of factor() as a possible. Luckily this is basically already, we can check this using the str() function:
+```{r}
+str(df)
+```
+
+## Exploratory Data Analysis
+Let's use ggplot2 to explore the data a bit. Feel free to expand on this section:
+
+```{r}
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+
+```
+## Correlation and CorrPlots
+From Wikipedia, correlation is defined as:
+In statistics, dependence or association is any statistical relationship, whether causal or not, between two random variables or two sets of data. Correlation is any of a broad class of statistical relationships involving dependence, though in common usage it most often refers to the extent to which two variables have a linear relationship with each other. Familiar examples of dependent phenomena include the correlation between the physical statures of parents and their offspring, and the correlation between the demand for a product and its price.
+Correlation plots are a great way of exploring data and seeing if there are any interaction terms. Let's start off by just grabbing the numeric data (we can't see correlation for categorical data):
+```{r}
+# Grab only numeric columns
+num.cols <- sapply(df, is.numeric)
+
+# Filter to numeric columns for correlation
+cor.data <- cor(df[,num.cols])
+cor.data
+```
+
+
+While this is fantastic information, it's hard to take it all in. Let's visualize all this data. There are lots of amazing 3rd party packages to do this, let's use and install the 'corrgram' package and the corrplot package. This will also install a bunch of dependencies for the package.
+```{r}
+#install.packages('corrgram',repos = 'http://cran.us.r-project.org')
+#install.packages('corrplot',repos = 'http://cran.us.r-project.org')
+library(corrplot)
+library(corrgram)
+```
+
+Let's start by using corrplot, the most common one. [Here's a really nice documentation page](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html) on the package. I encourage you to play around with it.
+
+```{r}
+corrplot(cor.data, method = "color")
+```
+
+Cleary we have very high correlation between G1, G2, and G3 which makes sense since those are grades:
+
+* 31 G1 - first period grade (numeric: from 0 to 20)
+* 31 G2 - second period grade (numeric: from 0 to 20)
+* 32 G3 - final grade (numeric: from 0 to 20, output target)
+Meaning good students do well each period, and poor students do poorly each period, etc. Also a high G1,G2, or G3 value has a negative correlation with failure (number of past class failures).
+Also Mother and Father education levels are correlated, which also makes sense.
+We can also use the corrgram which allows to just automatically do these type of figures by just passing in the dataframe directly. There's a lot going on here, so reference the [documentation](https://cran.r-project.org/web/packages/corrgram/index.html) of corrgram for more info.
+```{r}
+corrgram(cor.data, lower.panel = panel.shade, upper.panel = panel.pie, text.panel = panel.txt )
+```
+
