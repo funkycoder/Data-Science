@@ -123,3 +123,110 @@ We can also use the corrgram which allows to just automatically do these type of
 corrgram(cor.data, lower.panel = panel.shade, upper.panel = panel.pie, text.panel = panel.txt )
 ```
 
+Since we're going to eventually try to predict the G3 score let's see a histogram of these scores:
+```{r}
+ggplot(df, mapping = aes(x = G3)) +
+  geom_histogram(bins = 20, alpha = 0.5, fill = "blue") +
+  theme_minimal()
+```
+
+## Train and Test Data¶
+We'll need to split our data into a training set and a testing set in order to test our accuracy. We can do this easily using the caTools library:
+```{r}
+# Import Library
+library(caTools)
+# Set a random see so your "random" results are the same as this notebook
+set.seed(101) 
+
+# Split up the sample, basically randomly assigns a booleans to a new column "sample"
+sample <- sample.split(df$age, SplitRatio = 0.70) # SplitRatio = percent of sample==TRUE
+
+# Training Data
+train = subset(df, sample == TRUE)
+
+# Testing Data
+test = subset(df, sample == FALSE)
+```
+
+## Training our Model
+Let's train out model on our training data, then ask for a summary of that model:
+```{r}
+model <- lm(G3 ~ ., train)
+summary(model)
+```
+
+Looks like Absences, G1, and G2 scores are good predictors. With age and activities also possibly contributing to a good model.
+
+## Visualize our Model
+We can visualize our linear regression model by plotting out the residuals, the residuals are basically a measure of how off we are for each point in the plot versus our model (the error).
+```{r}
+# Grab residuals
+res <- residuals(model)
+
+# Convert to dataframe for ggplot
+res <- as.data.frame(res)
+head(res)
+```
+
+### Using ggplot
+```{r}
+# Histogram of the residuals
+ggplot(res, aes(x = res)) + geom_histogram(fill = "blue", alpha = 0.5)
+```
+
+Looks like there are some suspicious residual values that have a value less than -5. We can further explore this by just calling plot on our model. What these plots represent is outside the course of this lecture, but it's covered in ISLR, as well as the Wikipedia page on [Regression Validation](https://en.wikipedia.org/wiki/Regression_validation).
+
+```{r}
+plot(model)
+```
+
+## Predictions
+Let's test our model by predicting on our testing set:
+```{r}
+G3.predictions <- predict(model, test)
+```
+
+Now we can get the root mean squared error, a standardized measure of how off we were with our predicted values:
+```{r}
+results <- cbind(G3.predictions, test$G3)
+colnames(results) <- c("pred", "real")
+results <- as.data.frame(results)
+
+```
+
+Now let's take care of negative predictions! Lot's of ways to this, here's a more complicated way, but its a good example of creating a custom function for a custom problem:
+```{r}
+
+to_zero <- function(x){
+    if  (x < 0){
+        return(0)
+    }else{
+        return(x)
+    }
+}
+results$pred <- sapply(results$pred, to_zero)
+```
+
+There's lots of ways to evaluate the prediction values, for example the MSE (mean squared error):
+```{r}
+mse <- mean((results$real - results$pred)^2)
+print(mse)
+```
+
+Or the root mean squared error:
+```{r}
+mse^0.5
+```
+
+Or just the R-Squared Value for our model (just for the predictions)
+```{r}
+SSE = sum((results$pred - results$real)^2)
+SST = sum( (mean(df$G3) - results$real)^2)
+
+R2 = 1 - SSE/SST
+R2
+
+```
+
+## Conclusion
+You should now feel comfortable with the R syntax for a Linear Regression. If some of the plots or math did not make sense to you, make sure to review ISLR and the relevant Wikipedia pages. There is no real substitute for taking the time to read about this material
