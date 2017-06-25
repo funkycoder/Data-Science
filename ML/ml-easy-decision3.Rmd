@@ -1,0 +1,106 @@
+---
+title: "ml-easy-decision3"
+author: "Quan Nguyen"
+date: "June 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1 - Collection and Exploring the Data
+Loading data from package **mclust**
+
+```{r}
+data("banknote", package = "mclust")
+# You gonna see genuine banknote at the top
+head(banknote)
+# Counterfeit banknote at the bottom
+tail(banknote)
+```
+Check the distribution of the *Status* variable
+```{r}
+table(banknote$Status)
+```
+
+
+View the correlation of all the variable now
+
+```{r corrplot, echo = FALSE}
+library(corrplot)
+corr_banknote <- cor(banknote[-1])
+corrplot(corr_banknote, method = "square")
+```
+
+## Step 2 - Preparing the Data
+
+We're going to select 150 at random without replacement and put them in **train** set. The rest of the data (50 observation) is going to **test** set.
+
+```{r}
+set.seed(2018)
+N <- nrow(banknote)
+train <- sample(1:N, 150, FALSE)
+
+# Note that train store only the row numbers not the actual obs
+head(train)
+```
+
+## Step 3 - Train model using **train** set
+```{r}
+library(C50)
+fitc <- C5.0(Status ~., data = banknote[train, ])
+```
+Now see the result 
+```{r train decision tree, echo = FALSE}
+plot(fitc)
+```
+
+You can see verbal rule:
+```{r}
+fitc_rules <- C5.0(Status ~., data = banknote[train, ], rules = TRUE)
+summary(fitc_rules)
+```
+
+## Step 4 - Evaluate model performance
+```{r}
+# Get the prediction result
+predc_train <- predict(fitc, newdata = banknote[train, ], type = "class")
+head(predc_train)
+```
+How well the decision tree classify the trainning sample?
+```{r}
+table(banknote$Status[train], predc_train, dnn = c("Observed Class", "Predicted class"))
+```
+How well doest it perform on **test** set
+```{r}
+predc <- predict(fitc, newdata = banknote[-train, ], type = "class")
+table(banknote$Status[-train], predc, dnn = c("Observed Class", "Predicted Class"))
+```
+## Step 5 - Improving Model Performance
+```{r}
+# Tree::tree : Deviance or Gini metric
+library(tree)
+fit <- tree(Status ~., data = banknote[train, ], split = "deviance")
+# View the decision tree
+plot(fit)
+text(fit) #Display text on decision tree
+```
+Take a look at train set performance
+```{r}
+summary(fit)
+```
+
+Test set performance
+```{r}
+pred <- predict(fit, newdata = banknote[-train,])
+tail(pred, 5)
+pred.class <- colnames(pred)[max.col(pred, ties.method = c("random"))]
+# Take a look to see if they match the obs listed in tail function
+tail(pred.class, 5)
+```
+Use confustion matrix now
+```{r}
+table(banknote$Status[-train], pred.class, dnn = c("Observed Class", "Predicted Class"))
+```
+Congratulations! That was 100% correct of prediction !
