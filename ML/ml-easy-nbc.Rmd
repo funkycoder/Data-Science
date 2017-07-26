@@ -1,0 +1,117 @@
+---
+title: "Naive Bayes Classifier"
+author: "Quan Nguyen"
+date: "June 29, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+# Loading libraries
+library(tidyverse)
+```
+
+# Data simulation
+## Step 1 - Collection and Exploring the Data
+Generate 100 cases, using two attributes x1 and x2 using Gaussian distribution
+
+```{r}
+num_attrib <- 2
+N <- 100
+
+# Seed
+set.seed(2017)
+x <- matrix(rnorm(N * num_attrib), ncol = num_attrib)
+colnames(x) <- c("x1", "x2")
+
+# Set class variable
+y <- as.numeric((x[, 1] ^ 2 + x[, 2] ^ 2) > 2.3)
+```
+
+Inspecting the newly create data and create data frame
+```{r}
+head(x)
+head(y)
+
+#Create data frame
+y <- as.factor(y)
+data <- as.data.frame(cbind(y, x))
+```
+
+Visualize data
+```{r}
+library(ggplot2)
+ggplot(data, aes(x = x1)) +
+  geom_density(color = "red")
+ggplot(data, aes(x = x2)) +
+  geom_density(color = "green")
+ggplot(data, aes(x = y)) +
+  geom_bar(aes(color = y, fill = y))
+```
+
+## Step 2 - Preparing the Data
+
+We're going to select  at random without replacement and put them in **train** set. The rest of the data (3 observation) is going to **test** set.
+
+```{r}
+set.seed(2016)
+
+# Without replacement
+train <- sample(1:N, 70, FALSE)
+```
+
+## Step 3 - Train model using **train** set
+```{r}
+library(e1071)
+fit <- naiveBayes(x[train, ], y[train])
+```
+
+## Step 4 - Evaluate model performance
+```{r}
+# Probability
+predc_probs <- predict(fit, data[train, -1], type = "raw")
+head(predc_probs)
+```
+
+Viewing the predicted class label
+
+```{r}
+pred <- predict(fit, data[train, -1], type = "class")
+head(pred)
+```
+
+Confusion matrix
+```{r}
+y_train <- y[train]
+table(pred, y_train)
+```
+
+
+## Step 5 - How well doest it perform on **test** set
+```{r}
+pred_test <- predict(fit, data[-train, -1], type = "class")
+y_test <- y[-train]
+table(pred_test, y_test)
+```
+
+
+# Identifying Radar signals
+## Step 1 - Collecting and Exploring the Data
+```{r}
+data("ionosphere", package = "evclass")
+str(ionosphere)
+```
+
+
+
+
+
+
+
+
+
+
+
+
