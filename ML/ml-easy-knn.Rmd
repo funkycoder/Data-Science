@@ -1,0 +1,100 @@
+---
+title: "K nearest neighbors"
+author: "Quan Nguyen"
+date: "June 27, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1 - Collection and Exploring the Data
+Loading data from package **rebmix**
+
+```{r}
+data("wine", package = "rebmix")
+# Take a look at the data
+str(wine)
+head(wine)
+
+# Well, Cultivar is a factor
+```
+How many Cultivar are there?
+
+```{r}
+library(ggplot2)
+ggplot(wine, aes(x = Cultivar)) +
+  geom_bar(aes (color= Cultivar, fill = Cultivar), stat = "count")
+```
+
+
+View the correlation of all the variable now
+
+```{r corrplot, echo = FALSE}
+library(corrplot)
+corr_wine <- cor(wine[-14]) #Remove the Cultivar column
+corrplot(corr_wine, method = "square")
+```
+
+## Step 2 - Preparing the Data
+Display raw features by boxplot
+
+```{r}
+boxplot(wine)
+```
+
+The performance of KNN depends critically on the distance metric. For this reason, you should typically normalize or scale the features so that they are approximately in the same range
+```{r}
+data_sample <- wine[, 1:13]
+data_sample <- scale(data_sample)
+boxplot(data_sample)
+```
+
+Make **train** and **test** dataset
+```{r}
+set.seed(2016)
+n = nrow(data_sample)
+train <- sample(1:n, 89, replace = FALSE)
+head(train)
+```
+
+## Step 3 - Train model using **train** set
+```{r}
+require(knnGarden)
+fit1 <- knnVCN(data_sample[train,],
+               wine$Cultivar[train],
+               data_sample[-train,],
+               K = 2,
+               method = "canberra")
+
+```
+
+## Step 4 - Evaluate model performance
+```{r}
+# Confusion matrix
+table(fit1$TstXIBelong, wine$Cultivar[-train])
+```
+
+## Step 5 - Improving Model Performance
+Try the Euclidean distance
+```{r}
+fit2 <- knnVCN(data_sample[train, ],
+               wine$Cultivar[train],
+               data_sample[-train,],
+               K = 2,
+               method = "euclidean")
+# Confusion matrix
+table(fit2$TstXIBelong, wine$Cultivar[-train])
+```
+Changing K
+```{r}
+fit3 <- knnVCN(data_sample[train, ],
+               wine$Cultivar[train],
+               data_sample[-train,],
+               K = 3,
+               method = "euclidean")
+table(fit3$TstXIBelong, wine$Cultivar[-train])
+```
+
+Remember the value of K and the selected distance metric can have a significant impact on overall performance of the KNN algorithm
