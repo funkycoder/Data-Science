@@ -1,0 +1,63 @@
+---
+title: "Logistic regression"
+author: "William B. King Ph.D"
+date: "July 26, 2017"
+output: html_document
+---
+Source : <http://ww2.coastal.edu/kingw/statistics/R-tutorials/logistic.html>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Logistic Regression: One Numeric Predictor
+
+In the "MASS" library there is a data set called "menarche" (Milicer, H. and Szczotka, F., 1966, Age at Menarche in Warsaw girls in 1965, Human Biology, 38, 199-203), in which there are three variables: "Age" (average age of age homogeneous groups of girls), "Total" (number of girls in each group), and "Menarche" (number of girls in the group who have reached menarche).
+
+```{r menarche}
+library(MASS)
+library(dplyr)
+# Convert data frame to tibble
+df <- tbl_df(MASS::menarche)
+# Take a look at this tibble
+glimpse(df)
+summary(df)
+
+# Plot p(success = Menarche/Total)
+plot(Menarche / Total ~ Age, data = df)
+```
+
+
+Or you can do it with ggplot2
+```{r}
+library(ggplot2)
+ggplot(df, aes(x = Age, y = Menarche / Total )) +
+  geom_point()
+```
+
+## Including Plots
+From the graph above it appears a logistic fit is called for here. The fit would be done this way. 
+Numerous explanation are in order! First, **glm()** is the function used to do generalized linear models. With "family=" set to "binomial" with a "logit" link, glm() produces a logistic regression. Because we are using glm() with binomial errors in the response variable, the ordinary assumptions of least squares linear regression (normality and homoscedasticity) don't apply. Second, our data frame does not contain a row for every case (i.e., every girl upon whom data were collected). Therefore, we do not have a binary (0,1) coded response variable. No problem! If we feed glm() a table (or matrix) in which the first column is number of successes and the second column is number of failures, R will take care of the coding for us. In the above analysis, we made that table on the fly inside the model formula by binding "Menarche" and "Total − Menarche" into the columns of a table (matrix) using cbind().
+Let's look at how closely the fitted values from our logistic regression match the observed values. 
+```{r}
+glm.out = glm(cbind(Menarche, Total-Menarche) ~ Age, family=binomial(logit), data=df)
+
+plot(Menarche / Total ~ Age, data = df)
+lines(df$Age, glm.out$fitted, type="l", col="red")
+title(main="Menarche Data with Fitted Logistic Regression Line")
+
+# Try with ggplot2
+ggplot(df, aes(x = Age, y = Menarche / Total )) +
+  geom_point() +
+  geom_line(aes(x = df$Age, y = glm.out$fitted)) +
+  theme_bw()
+```
+I'm impressed! The numerical results are extracted like this. 
+```{r}
+summary(glm.out)
+```
+So for every one year increase in age the odds ò having reached menarche increase by ```{r}exp() ```
+```{r}
+
+```
